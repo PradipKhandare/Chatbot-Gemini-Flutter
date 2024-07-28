@@ -15,6 +15,17 @@ class CameraViewPage extends StatefulWidget {
 
 class _CameraViewPageState extends State<CameraViewPage> {
   TextEditingController controller = TextEditingController();
+  bool isTextFieldEmpty = true;
+
+  @override
+  void initState() {
+    super.initState();
+    controller.addListener(() {
+      setState(() {
+        isTextFieldEmpty = controller.text.isEmpty;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +69,7 @@ class _CameraViewPageState extends State<CameraViewPage> {
         height: MediaQuery.of(context).size.height,
         child: Stack(
           children: [
-            if (widget.path != null) // Check if path is not null
+            if (widget.path.isNotEmpty) // Check if path is not empty
               Container(
                 width: MediaQuery.of(context).size.width,
                 height: MediaQuery.of(context).size.height - 150,
@@ -76,6 +87,7 @@ class _CameraViewPageState extends State<CameraViewPage> {
                 width: MediaQuery.of(context).size.width,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                 child: TextFormField(
+                  controller: controller,
                   maxLines: 6,
                   minLines: 1,
                   style: const TextStyle(
@@ -83,25 +95,25 @@ class _CameraViewPageState extends State<CameraViewPage> {
                     fontSize: 17,
                   ),
                   decoration: InputDecoration(
-                    hintText: 'Ask something about the image here',
+                    hintText: 'Ask something',
                     hintStyle: const TextStyle(
-                      color: Colors.white,
+                      color: Colors.grey,
                       fontSize: 17,
                     ),
                     suffixIcon: Padding(
                       padding: const EdgeInsets.only(right: 8.0),
                       child: CircleAvatar(
                         radius: 15,
-                        backgroundColor: Colors.tealAccent[700],
+                        backgroundColor: isTextFieldEmpty?  Colors.grey : const Color(0xFF0474ea),
                         child: InkWell(
-                          onTap: () {
+                          onTap: isTextFieldEmpty
+                              ? null
+                              : () {
                             if (widget.onImageSend != null) {
-                              if (widget.path == null || widget.path!.isEmpty) {
-                                widget.onImageSend(
-                                    controller.text, widget.path);
+                              if (widget.path.isEmpty) {
+                                widget.onImageSend(controller.text, widget.path);
                               } else {
-                                widget.onImageSend(
-                                    widget.path, controller.text);
+                                widget.onImageSend(widget.path, controller.text);
                               }
                             }
                             Navigator.push(
@@ -114,9 +126,10 @@ class _CameraViewPageState extends State<CameraViewPage> {
                               ),
                             );
                           },
-                          child: const Icon(
+                          child: Icon(
                             Icons.check,
                             size: 18,
+                            color: isTextFieldEmpty ? Colors.grey : Colors.white,
                           ),
                         ),
                       ),

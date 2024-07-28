@@ -42,74 +42,78 @@ class _IndividualPageState extends State<IndividualPage> {
 
   final List<ModelMessage> prompt = [];
   String? _imagePath;
-  String? geminiResponse;
+  String geminiResponse = "waiting";
 
   @override
   void initState() {
     super.initState();
-    // Add the initial image and message from CameraViewPage to the prompt list
     if (widget.userAddedImagePath != null && widget.userMessage != null) {
-      prompt.add(
-        ModelMessage(
-          message: widget.userMessage!,
-          time: DateTime.now(),
-          imagePath: widget.userAddedImagePath!,
-          type: MessageType.user,
-        ),
-      );
-      _scrollToBottom();
+      onImageSend(widget.userAddedImagePath!, widget.userMessage!);
     }
+    _scrollToBottom();
   }
 
-  Future<void> onImageSend(String imagePath, [String message = "Please tell me something about the image"]) async {
+
+  Future<void> onImageSend(String imagePath, String message) async {
+    if (imagePath.isEmpty) {
+      _showErrorDialog(context, "Failed to capture image. Please try again.");
+      return;
+    }
+
+    final bytes = File(imagePath).readAsBytesSync();
+    final mimeType = 'image/jpeg';
+
+    final List<google_generative_ai.Content> content = [
+      google_generative_ai.Content.text(message),
+      google_generative_ai.Content.data(mimeType, Uint8List.fromList(bytes)),
+    ];
+
     try {
-      // Read the image file as bytes
-      final bytes = await File(imagePath).readAsBytes();
-      final mimeType = 'image/jpeg'; // Adjust MIME type if necessary
-
-      print("Image Path in onImageSend: $imagePath"); // Debug information
-
-      if (bytes.isEmpty) {
-        _showErrorDialog(context, "Failed to read the image. Please try again.");
-        return;
-      }
-
-      // Prepare the content to be sent to the model
-      final List<google_generative_ai.Content> content = [
-        google_generative_ai.Content.text(message),
-        google_generative_ai.Content.data(mimeType, Uint8List.fromList(bytes)), // Send the base64 image as data
-      ];
-
-      // Send the content to the model and get the response
       final response = await model.generateContent(content);
+      if (response.text != null) {
+        // Add the user message immediately
+        setState(() {
+          prompt.add(
+            ModelMessage(
+              message: message,
+              time: DateTime.now(),
+              imagePath: imagePath,
+              type: MessageType.user,
+            ),
+          );
+          _scrollToBottom(); // Ensure the chat scrolls to the bottom
+        });
 
-      setState(() {
-        geminiResponse = response.text;
-        // Add the response message to the prompt list and update the UI
-        prompt.add(
-          ModelMessage(
-            message: response.text ?? "No response from model",
-            time: DateTime.now(),
-            imagePath: imagePath,
-            type: MessageType.model, // Set type to model
-          ),
-        );
-      });
+        // Delay before adding the model response
+        await Future.delayed(const Duration(seconds: 2)); // Adjust the delay as needed
 
-      // Delete the image file after sending
-      try {
-        final file = File(imagePath);
-        if (await file.exists()) {
-          await file.delete();
-          print("Image file deleted: $imagePath");
-        }
-      } catch (e) {
-        print("Error deleting image file: $e");
+        setState(() {
+          prompt.add(
+            ModelMessage(
+              message: response.text!,
+              time: DateTime.now(),
+              type: MessageType.model,
+            ),
+          );
+          _scrollToBottom(); // Ensure the chat scrolls to the bottom
+        });
+      } else {
+        _showErrorDialog(context, "Received empty response from the model.");
       }
     } catch (e) {
-      print("Error sending image to Gemini: $e");
-      _showErrorDialog(context, "Failed to send image. Please try again.");
+      print("Error sending image to model: $e");
+      _showErrorDialog(context, "Failed to send message. Please try again.");
     }
+
+    // Optionally, delete the image file if needed
+    // try {
+    //   final file = File(imagePath);
+    //   if (await file.exists()) {
+    //     await file.delete();
+    //   }
+    // } catch (e) {
+    //   print("Error deleting image file: $e");
+    // }
   }
 
 
@@ -214,13 +218,13 @@ class _IndividualPageState extends State<IndividualPage> {
                         if (message.type == MessageType.user) {
                           return OwnMessageCard(
                             message: message.message,
-                            time: message.time.toIso8601String(),
+                            time: dateFormat.format(DateTime.parse(message.time.toString())),
                             imagePath: message.imagePath,
                           );
                         } else {
                           return ReplyMessageCard(
                             message: message.message,
-                            time: message.time.toIso8601String(),
+                            time: dateFormat.format(DateTime.parse(message.time.toString())),
                           );
                         }
                       },
@@ -263,41 +267,41 @@ class _IndividualPageState extends State<IndividualPage> {
                                     decoration: InputDecoration(
                                       border: InputBorder.none,
                                       hintText: "Type a message",
-                                      contentPadding: const EdgeInsets.all(5),
-                                      prefixIcon: IconButton(
-                                        onPressed: () {},
-                                        icon: Icon(
-                                          Icons.emoji_emotions,
-                                          color: Theme.of(context).primaryColor,
-                                        ),
-                                      ),
+                                      contentPadding: const EdgeInsets.all(8),
+                                      // prefixIcon: IconButton(
+                                      //   onPressed: () {},
+                                      //   icon: Icon(
+                                      //     Icons.emoji_emotions,
+                                      //     color: Theme.of(context).primaryColor,
+                                      //   ),
+                                      // ),
                                       suffixIcon: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          IconButton(
-                                            onPressed: () async{
-                                              final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-                                              if (pickedFile != null) {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (builder) => CameraViewPage(
-                                                      path: pickedFile.path,
-                                                      onImageSend: onImageSend,
-                                                    ),
-                                                  ),
-                                                );
-                                              } else {
-                                                // Handle the case where no image was selected
-                                                print("No image selected.");
-                                              }
-                                            },
-                                            icon: Icon(
-                                              Icons.attach_file,
-                                              color: Theme.of(context)
-                                                  .primaryColor,
-                                            ),
-                                          ),
+                                          // IconButton(
+                                          //   onPressed: () async{
+                                          //     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+                                          //     if (pickedFile != null) {
+                                          //       Navigator.push(
+                                          //         context,
+                                          //         MaterialPageRoute(
+                                          //           builder: (builder) => CameraViewPage(
+                                          //             path: pickedFile.path,
+                                          //             onImageSend: onImageSend,
+                                          //           ),
+                                          //         ),
+                                          //       );
+                                          //     } else {
+                                          //       // Handle the case where no image was selected
+                                          //       print("No image selected.");
+                                          //     }
+                                          //   },
+                                          //   icon: Icon(
+                                          //     Icons.attach_file,
+                                          //     color: Theme.of(context)
+                                          //         .primaryColor,
+                                          //   ),
+                                          // ),
                                           IconButton(
                                             onPressed: (){
                                               Navigator.push(
@@ -461,6 +465,7 @@ class _IndividualPageState extends State<IndividualPage> {
           type: MessageType.user, // Set type to user
         ),
       );
+      _scrollToBottom();
     });
 
     // Send the message to the model

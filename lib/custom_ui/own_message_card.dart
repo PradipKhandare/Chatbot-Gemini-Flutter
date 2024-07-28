@@ -21,7 +21,7 @@ class OwnMessageCard extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
-          margin: EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+          margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
           color: const Color(0xFFec8630),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,32 +32,32 @@ class OwnMessageCard extends StatelessWidget {
                   child: Image.file(
                     File(imagePath!),
                     fit: BoxFit.cover,
-                    height: MediaQuery.of(context).size.height / 2.3,
-                    width: MediaQuery.of(context).size.width / 1.8,
+                    height: MediaQuery.of(context).size.height / 2.2,
+                    width: MediaQuery.of(context).size.width,
                   ),
                 ),
               if (message != null)
                 Padding(
-                  padding: const EdgeInsets.all(5),
+                  padding: const EdgeInsets.only(left: 8, top: 8),
                   child: Text(
                     message!,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                     ),
                   ),
                 ),
               Padding(
-                padding: const EdgeInsets.only(left: 10, right: 60, top: 5, bottom: 20),
+                padding: const EdgeInsets.only(left: 10, right: 15, top: 5, bottom: 20),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     if (time != null)
                       Text(
                         time!,
-                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                        style: const TextStyle(fontSize: 13, color: Colors.white),
                       ),
-                    const SizedBox(width: 5),
-                    Icon(
+                    const SizedBox(width: 10),
+                    const Icon(
                       Icons.done_all,
                       size: 20,
                     ),
