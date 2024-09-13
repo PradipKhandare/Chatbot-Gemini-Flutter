@@ -43,3 +43,4 @@ app.*.map.json
 /android/app/release
 static_values.dart
 static_values.dart
+lib/constants/static_values.dart
